@@ -105,6 +105,10 @@ const AFAuth = (() => {
     location.reload();
   }
 
+  function localAccounts() {
+    return Object.entries(readUsers()).map(([key, record]) => ({key, username: record.username || key}));
+  }
+
   /* ---------- UI ---------- */
   function showLogin(done) {
     onAuthDone = done;
@@ -230,5 +234,5 @@ const AFAuth = (() => {
     setMode(ov, 'login');
   }
 
-  return { init, showLogin, logout, currentUser: () => currentUser };
+  return { init, showLogin, logout, currentUser: () => currentUser, localAccounts };
 })();

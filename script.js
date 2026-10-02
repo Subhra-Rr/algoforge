@@ -64,13 +64,6 @@ const QUIZ = [
   {d:'Expert', q:'What is the key idea behind union-find?', o:['It maintains sets and quickly merges them with parent pointers','It always sorts edges in descending order','It stores all values in a trie','It runs Dijkstra to check all paths'], a:0, w:'Union-find tracks connected components and supports near-constant time merges and finds under path compression.'}
 ];
 
-const BOTS = [
-  {name:'Ava', tag:'Speed', xp:1320, solved:18},
-  {name:'Noah', tag:'Graph Pro', xp:1180, solved:15},
-  {name:'Mila', tag:'DP', xp:1040, solved:13},
-  {name:'Leo', tag:'Algorithms', xp:940, solved:11}
-];
-
 const PROBLEMS = [
   {
     id: 'two-sum',
@@ -1385,6 +1378,41 @@ function vPaths() {
     </div>`;
   }).join('')}`;
 }
+function performanceMetrics(profile) {
+  const attempts = Array.isArray(profile.attempts) ? profile.attempts : [];
+  let passedTests = 0;
+  let totalTests = 0;
+  for (const attempt of attempts) {
+    if (Number.isFinite(attempt.passedTests) && Number.isFinite(attempt.totalTests)) {
+      passedTests += attempt.passedTests;
+      totalTests += attempt.totalTests;
+      continue;
+    }
+    const match = String(attempt.tests || '').match(/^(all|\d+)\/(\d+)$/);
+    if (match) {
+      totalTests += Number(match[2]);
+      passedTests += match[1] === 'all' ? Number(match[2]) : Number(match[1]);
+    }
+  }
+  return {
+    attempts,
+    successfulAttempts: attempts.filter(attempt => attempt.ok).length,
+    totalAttempts: attempts.length,
+    passedTests,
+    totalTests,
+    accuracy: totalTests ? Math.round(passedTests / totalTests * 100) : null
+  };
+}
+function attemptTestCounts(attempt) {
+  if (Number.isFinite(attempt.passedTests) && Number.isFinite(attempt.totalTests)) {
+    return {passed: attempt.passedTests, total: attempt.totalTests};
+  }
+  const match = String(attempt.tests || '').match(/^(all|\d+)\/(\d+)$/);
+  if (!match) return {passed: 0, total: 0};
+  const total = Number(match[2]);
+  return {passed: match[1] === 'all' ? total : Number(match[1]), total};
+}
+
 /* ---- Stats ---- */
 function vStats() {
   const donut = Solved.count() > 0 ? (() => {
@@ -1397,6 +1425,8 @@ function vStats() {
   const topics = Object.entries(topicMap).sort((a, b) => b[1] - a[1]).slice(0, 8);
   const maxT = Math.max(1, ...topics.map(t => t[1]));
   const avg = state.quiz.length ? Math.round(state.quiz.reduce((a, b) => a + b.score / Math.max(b.total, 1), 0) / state.quiz.length * 100) : null;
+  const performance = performanceMetrics(state);
+  const recentAttempts = performance.attempts.slice(0, 8);
   const html = `
   <h1 class="page-title">Progress &amp; Stats</h1>
   <p class="page-sub">Your complete practice picture — computed locally, shareable in one click.</p>
@@ -1405,6 +1435,8 @@ function vStats() {
       <div class="pbar" style="margin-top:8px"><i style="width:${levelProg() / 2}%"></i></div><div class="s">Level ${level()} · ${200 - levelProg()} XP to level ${level() + 1}</div></div>
     ${statCard('Problems solved', Solved.count(), `Easy ${Solved.byDiff('Easy')} · Medium ${Solved.byDiff('Medium')} · Hard ${Solved.byDiff('Hard')} · Expert ${Solved.byDiff('Expert')}`, 'check')}
     ${statCard('Quiz average', avg === null ? '—' : avg + '%', `${state.quiz.length} quiz${state.quiz.length !== 1 ? 'zes' : ''} taken`, 'award')}
+    ${statCard('Test accuracy', performance.accuracy === null ? '—' : performance.accuracy + '%', `${performance.passedTests}/${performance.totalTests} checks passed`, 'target')}
+    ${statCard('Coding attempts', performance.totalAttempts, `${performance.successfulAttempts} fully passed`, 'code')}
     ${statCard('Focus sessions', state.pomoTotal, `${state.pomoToday.count} today`, 'clock')}
   </div>
   <div class="viz-grid">
@@ -1425,6 +1457,14 @@ function vStats() {
     ${state.quiz.length ? `<div class="card reveal" style="grid-column:1/-1"><h2 style="font-size:1rem;margin-bottom:10px">Quiz history</h2>
       <table class="quiz-hist"><tr><th>Date</th><th>Score</th><th>Result</th></tr>
       ${state.quiz.slice(-8).reverse().map(q => `<tr><td>${fmtDate(q.ts)}</td><td>${q.score}/${q.total}</td><td><span class="badge ${q.score / q.total >= .7 ? 'b-easy' : q.score / q.total >= .4 ? 'b-med' : 'b-hard'}">${Math.round(q.score / q.total * 100)}%</span></td></tr>`).join('')}</table></div>` : ''}
+    <div class="card reveal" style="grid-column:1/-1"><h2 style="font-size:1rem;margin-bottom:10px">Recent coding attempts</h2>
+      ${recentAttempts.length ? `<table class="quiz-hist"><tr><th>Problem</th><th>Date</th><th>Language</th><th>Checks</th><th>Result</th></tr>
+      ${recentAttempts.map(attempt => {
+        const problem = P_BY_ID[attempt.p];
+        const counts = attemptTestCounts(attempt);
+        return `<tr><td>${problem ? `<a href="#/problem/${problem.id}">${esc(problem.t)}</a>` : esc(attempt.p)}</td><td>${fmtDate(attempt.ts)}</td><td>${esc(attempt.lang || 'js')}</td><td>${counts.passed}/${counts.total}</td><td><span class="badge ${attempt.ok ? 'b-easy' : 'b-hard'}">${attempt.ok ? 'Passed' : 'Needs work'}</span></td></tr>`;
+      }).join('')}</table>` : `<div class="empty">Run a problem’s tests to start tracking your coding performance.</div>`}
+    </div>
   </div>
   <div style="display:flex;gap:10px;margin-top:18px;flex-wrap:wrap">
     <button class="btn primary" data-action="share-progress">${I.share} Share my progress</button>
@@ -1470,18 +1510,38 @@ function drawWeekChart(cv) {
 }
 /* ---- Leaderboard ---- */
 function vBoard() {
-  const me = (typeof AFAuth !== 'undefined' && AFAuth.currentUser()) || 'You';
-  const rows = [...BOTS.map(b => ({...b, me: false})), {name: me, xp: state.xp, tag:'Local', me: true, solved: Solved.count()}]
-    .sort((a, b) => b.xp - a.xp);
+  const currentUser = (typeof AFAuth !== 'undefined' && AFAuth.currentUser()) || null;
+  const accounts = (typeof AFAuth !== 'undefined' && AFAuth.localAccounts) ? AFAuth.localAccounts() : [];
+  const rows = accounts.map(account => {
+    const profile = account.key === currentUser ? state : Object.assign(cloneState(DEFAULT_STATE), AFData.load(account.key));
+    const metrics = performanceMetrics(profile);
+    const xp = Number(profile.xp) || 0;
+    return {
+      name: account.username,
+      xp,
+      level: Math.floor(xp / 200) + 1,
+      solved: Object.keys(profile.solved || {}).length,
+      accuracy: metrics.accuracy,
+      me: account.key === currentUser
+    };
+  });
+  if (!currentUser) {
+    const metrics = performanceMetrics(state);
+    rows.push({name: 'Guest profile', xp: state.xp, level: level(), solved: Solved.count(), accuracy: metrics.accuracy, me: true});
+  } else if (!rows.some(row => row.me)) {
+    const metrics = performanceMetrics(state);
+    rows.push({name: currentUser, xp: state.xp, level: level(), solved: Solved.count(), accuracy: metrics.accuracy, me: true});
+  }
+  rows.sort((a, b) => b.xp - a.xp || b.solved - a.solved || (b.accuracy ?? -1) - (a.accuracy ?? -1) || a.name.localeCompare(b.name));
   return `
   <h1 class="page-title">Leaderboard &amp; Badges</h1>
-  <p class="page-sub">Compete against the AlgoForge regulars (simulated locally) and collect all ${ACH.length} badges.</p>
+  <p class="page-sub">Rankings use saved XP, solved problems, and test accuracy for accounts on this browser. Collect all ${ACH.length} badges.</p>
   <div class="card reveal" style="padding:8px 4px;overflow-x:auto">
-  <table class="lb-table"><tr><th>Rank</th><th>Player</th><th>Solved</th><th>XP</th></tr>
+  <table class="lb-table"><tr><th>Rank</th><th>Player</th><th>Solved</th><th>Test accuracy</th><th>XP</th></tr>
   ${rows.map((r, i) => `<tr class="lb-row ${r.me ? 'me' : ''}">
     <td class="lb-rank ${i < 3 ? 'top' : ''}">${i < 3 ? ['🥇','🥈','🥉'][i] : '#' + (i + 1)}</td>
-    <td><b>${esc(r.me ? me : r.name)}</b> <span class="chip" style="margin-left:6px">${r.tag}</span></td>
-    <td class="dim">${r.solved ?? '—'}</td><td><b>${r.xp}</b></td></tr>`).join('')}
+    <td><b>${esc(r.name)}${r.me ? ' (you)' : ''}</b> <span class="chip" style="margin-left:6px">Level ${r.level}</span></td>
+    <td class="dim">${r.solved}</td><td class="dim">${r.accuracy === null ? 'No runs' : `${r.accuracy}%`}</td><td><b>${r.xp}</b></td></tr>`).join('')}
   </table></div>
   <h2 class="section-h">${I.trophy}Achievements <span class="chip">${state.achievements.length}/${ACH.length}</span></h2>
   <div class="ach-grid">
@@ -1873,7 +1933,8 @@ const Actions = {
             out.insertAdjacentHTML('beforeend', `<div class="external-fallback"><span>Need another judge for this problem?</span><a href="${EXTERNAL_EQUIVALENTS[id]}" target="_blank" rel="noopener noreferrer">Continue this problem on LeetCode ${I.arrR}</a></div>`);
           }
           el.disabled = false;
-          recordAttempt(id, verdict.ok, code);
+          const passedTests = (verdict.tests || []).filter(test => test.passed).length;
+          recordAttempt(id, verdict.ok, code, passedTests);
           if (verdict.ok) toast(`✅ All ${p.ex.length + hidden.length} tests passed — mark it solved!`, 'success');
           else toast(verdict.detail || 'Tests failed — check the failing cases and refine.', 'warn');
         }
@@ -1930,9 +1991,9 @@ const Actions = {
   'modal-close': closeModal,
   'clear-filters': () => { F.q = ''; F.diff = F.topic = F.comp = F.status = 'All'; F.sort = 'pop'; render(); }
 };
-function recordAttempt(id, ok, code) {
+function recordAttempt(id, ok, code, passedTests = 0) {
   const total = P_BY_ID[id].ex.length + (HIDDEN_TESTS[id] || []).length;
-  state.attempts.unshift({p: id, ts: Date.now(), lang: Session.lang, ok, tests: `${ok ? 'all' : 0}/${total}`, code: code.slice(0, 1200)});
+  state.attempts.unshift({p: id, ts: Date.now(), lang: Session.lang, ok, passedTests, totalTests: total, tests: `${passedTests}/${total}`, code: code.slice(0, 1200)});
   state.attempts = state.attempts.slice(0, 60);
   touchActivity(1); save();
 }
