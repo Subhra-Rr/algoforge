@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="AlgoForge — a frontend-only DSA learning & practice platform. Algorithms, problems, daily challenges, learning paths, and progress tracking. All data stays in your browser.">
+<meta name="color-scheme" content="dark light">
+<title>AlgoForge — DSA Practice Platform</title>
+<link rel="manifest" href='data:application/manifest+json,{"name":"AlgoForge","short_name":"AlgoForge","display":"standalone","background_color":"%230a0f1f","theme_color":"%236d8bff","start_url":"."}'>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css" onerror="window.__afCssFail && window.__afCssFail()">
+</head>
+<body>
+<a class="skip-link" href="#main" data-action="skip">Skip to content</a>
+
+<div id="splash" role="status" aria-label="Loading AlgoForge">
+  <div class="splash-logo">⚡ AlgoForge</div>
+  <div class="splash-bar"><i></i></div>
+</div>
+
+<noscript>
+  <style>#splash{display:none}</style>
+  <div style="max-width:520px;margin:80px auto;padding:24px;font-family:sans-serif;color:#e9eefb;background:#121a30;border:1px solid #23304f;border-radius:14px">
+    <h2>JavaScript is disabled</h2>
+    <p>AlgoForge runs entirely in your browser and needs JavaScript. Please enable it and reload.</p>
+  </div>
+</noscript>
+
+<!-- FAIL-SAFE: separate script block on purpose. If script.js fails to load
+     or has a parse error, this still runs — it removes the splash and shows
+     a readable error instead of leaving you stuck on the loading animation. -->
+<script>
+(function () {
+  function killSplash() {
+    var s = document.getElementById('splash');
+    if (s && s.parentNode) s.parentNode.removeChild(s);
+  }
+  function fail(msg) {
+    killSplash();
+    var v = document.getElementById('view');
+    if (v && !v.innerHTML.trim()) {
+      v.innerHTML =
+        '<div class="card" style="margin:20px 0;border-color:#fb7185">' +
+        '<h2 style="color:#fb7185;margin-bottom:8px">AlgoForge could not start</h2>' +
+        '<p style="color:#9fb0d0">' + msg + '</p>' +
+        '<p style="color:#67789c;font-size:.85rem">Open DevTools (F12 &rarr; Console) for details. ' +
+        'The most common cause is a truncated or partially-saved file — ' +
+        'make sure index.html, styles.css, auth.js and script.js were all saved completely.</p></div>';
+    }
+  }
+  window.__afFail = fail;
+  /* Missing stylesheet detector — tells you in plain words instead of
+     rendering an unstyled mess. */
+  window.__afCssFail = function () {
+    if (document.getElementById('cssFailBanner')) return;
+    var b = document.createElement('div');
+    b.id = 'cssFailBanner';
+    b.setAttribute('role', 'alert');
+    b.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:999;background:#fb7185;color:#1c0a10;padding:14px 18px;font:600 14px/1.5 system-ui,sans-serif;text-align:center';
+    b.innerHTML = '⚠ styles.css failed to load — the page cannot look right without it.<br>Check that <b>styles.css</b> is in the SAME folder as index.html (exact name, no .txt), then press Ctrl+Shift+R.';
+    document.body.appendChild(b);
+  };
+  window.addEventListener('error', function () {
+    var v = document.getElementById('view');
+    if (v && !v.innerHTML.trim()) fail('A script error occurred while starting AlgoForge.');
+    else killSplash();
+  });
+  setTimeout(killSplash, 2500); /* absolute backstop — splash can never trap you */
+})();
+</script>
+
+<div class="topbar">
+  <button class="icon-btn menu-btn" id="menuBtn" data-action="menu" aria-label="Open navigation menu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button>
+  <a href="#/" class="brand" aria-label="AlgoForge home"><span class="logo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg></span><span>Algo<em>Forge</em></span></a>
+  <div class="search-wrap">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+    <input id="globalSearch" type="search" placeholder="Search problems, algorithms…  ( / )" aria-label="Search problems and algorithms" autocomplete="off" role="combobox" aria-expanded="false">
+    <div class="search-dd" id="searchDD" role="listbox"></div>
+  </div>
+  <div class="top-actions">
+    <button class="btn ghost sm" id="authTrigger" data-action="auth-open" type="button">Log in / Sign up</button>
+    <button class="streak-pill" id="streakPill" data-action="goto-daily" aria-label="Practice streak, go to daily practice"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg><span id="streakN">0</span><span class="sp-label">day streak</span></button>
+    <button class="icon-btn" data-action="pomo-toggle" aria-label="Toggle focus timer" title="Focus timer"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></button>
+    <button class="icon-btn" data-action="contrast" aria-label="Toggle high contrast mode" title="High contrast"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button>
+    <button class="icon-btn" data-action="theme" id="themeBtn" aria-label="Toggle dark or light theme"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg></button>
+  </div>
+</div>
+
+<div class="scrim" id="scrim" data-action="menu-close" aria-hidden="true"></div>
+
+<div class="layout">
+  <aside class="sidebar" id="sidebar" aria-label="Main navigation">
+    <div class="nav-group">Practice</div>
+    <a class="nav-link" href="#/" data-nav=""><svg class="n-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>Dashboard</a>
+    <a class="nav-link" href="#/problems" data-nav="problems"><svg class="n-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>Problems</a>
+    <a class="nav-link" href="#/daily" data-nav="daily"><svg class="n-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>Daily Practice</a>
+    <div class="nav-group">Learn</div>
+    <a class="nav-link" href="#/library" data-nav="library"><svg class="n-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>Algorithm Library</a>
+    <a class="nav-link" href="#/paths" data-nav="paths"><svg class="n-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="6" y1="3" x2="6" y2="15"/><circle cx="18" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M18 9a9 9 0 0 1-9 9"/></svg>Learning Paths</a>
+    <div class="nav-group">You</div>
+    <a class="nav-link" href="#/stats" data-nav="stats"><svg class="n-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/></svg>Progress &amp; Stats</a>
+    <a class="nav-link" href="#/leaderboard" data-nav="leaderboard"><svg class="n-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2z"/></svg>Leaderboard</a>
+    <button class="nav-link account-nav" id="accountNav" type="button" data-action="auth-open" aria-label="Log in or sign up"><svg class="n-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M5 21a7 7 0 0 1 14 0"/></svg>Log in / Sign up</button>
+    <div class="side-profile" id="sideProfile"></div>
+  </aside>
+
+  <main class="main" id="main" tabindex="-1">
+    <nav class="crumb" id="crumb" aria-label="Breadcrumb"></nav>
+    <div id="view" aria-live="polite"></div>
+    <footer class="footer"><span>AlgoForge — frontend-only DSA practice. Each student's progress is saved locally in their own browser profile.</span><span>Local accounts · No tracking · No AI solvers</span></footer>
+  </main>
+</div>
+
+<div class="pomo" id="pomo" hidden role="timer" aria-label="Pomodoro focus timer">
+  <div class="pomo-head"><span>Focus Timer</span><button class="icon-btn sm" data-action="pomo-close" aria-label="Close timer"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div>
+  <div class="pomo-time" id="pomoTime">25:00</div>
+  <div class="pomo-mode" id="pomoMode">Work session · 25 min</div>
+  <div class="pomo-btns">
+    <button class="btn primary sm" data-action="pomo-start" id="pomoStartBtn">Start</button>
+    <button class="btn ghost sm" data-action="pomo-reset">Reset</button>
+  </div>
+  <div class="pomo-count" id="pomoCount"></div>
+</div>
+
+<div class="toasts" id="toasts" aria-live="polite"></div>
+<canvas id="confetti" class="confetti-canvas" aria-hidden="true"></canvas>
+<div id="modalRoot"></div>
+
+<script src="auth.js"></script>
+<script src="script.js" onerror="window.__afFail && window.__afFail('Could not load script.js — make sure it sits in the same folder as index.html.')"></script>
+</body>
+</html>
